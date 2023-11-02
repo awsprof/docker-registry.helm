@@ -1,0 +1,24 @@
+name: Release Helm Charts
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  release:
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3
+      - name: Install Helm
+        uses: azure/setup-helm@v3
+      - name: Publish Helm charts
+        uses: stefanprodan/helm-gh-pages@master
+        with:
+          charts_url: https://raw.githubusercontent.com/awsprof/docker-registry.helm/gh-pages/
+          owner: awsprof
+          token: ${{ secrets.CR_TOKEN }}

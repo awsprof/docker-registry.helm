@@ -24,7 +24,7 @@ We truncate at 63 chars because some Kubernetes name fields are limited to this 
 {{- end -}}
 
 {{- define "docker-registry.envs" -}}
-{{-- if not .Values.secrets.existinghtpasswdSecret }} 
+{{- if not .Values.secrets.existinghtpasswdSecret }} 
 - name: REGISTRY_HTTP_SECRET
   valueFrom:
     secretKeyRef:
@@ -37,7 +37,7 @@ We truncate at 63 chars because some Kubernetes name fields are limited to this 
       name: {{ .Values.secrets.existinghtpasswdSecret }}
       key: haSharedSecret
 {{- end }}
-{{-- if not .Values.secrets.existinghtpasswdSecret }} 
+{{- if not .Values.secrets.existinghtpasswdSecret }} 
 {{- if .Values.secrets.htpasswd }}
 - name: REGISTRY_AUTH
   value: "htpasswd"

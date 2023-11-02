@@ -10,7 +10,7 @@ jobs:
   release:
     permissions:
       contents: write
-    runs-on: [self-hosted, linux, X64]
+    runs-on: ubuntu-latest
     steps:
       - name: checkout
         uses: actions/checkout@v3
@@ -20,6 +20,5 @@ jobs:
         uses: stefanprodan/helm-gh-pages@master
         with:
           charts_url: https://raw.githubusercontent.com/awsprof/docker-registry.helm/gh-pages/
-          charts_dir: ./
           owner: awsprof
           token: ${{ secrets.CR_TOKEN }}

@@ -20,5 +20,6 @@ jobs:
         uses: stefanprodan/helm-gh-pages@master
         with:
           charts_url: https://raw.githubusercontent.com/awsprof/docker-registry.helm/gh-pages/
+          charts_dir: /
           owner: awsprof
           token: ${{ secrets.CR_TOKEN }}

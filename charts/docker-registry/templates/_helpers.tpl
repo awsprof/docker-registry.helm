@@ -24,13 +24,29 @@ We truncate at 63 chars because some Kubernetes name fields are limited to this 
 {{- end -}}
 
 {{- define "docker-registry.envs" -}}
+{{-- if not .Values.secrets.existinghtpasswdSecret }} 
 - name: REGISTRY_HTTP_SECRET
   valueFrom:
     secretKeyRef:
       name: {{ template "docker-registry.fullname" . }}-secret
       key: haSharedSecret
-
+{{- else }}
+- name: REGISTRY_HTTP_SECRET
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.secrets.existinghtpasswdSecret }}
+      key: haSharedSecret
+{{- end }}
+{{-- if not .Values.secrets.existinghtpasswdSecret }} 
 {{- if .Values.secrets.htpasswd }}
+- name: REGISTRY_AUTH
+  value: "htpasswd"
+- name: REGISTRY_AUTH_HTPASSWD_REALM
+  value: "Registry Realm"
+- name: REGISTRY_AUTH_HTPASSWD_PATH
+  value: "/auth/htpasswd"
+{{- end }}
+{{- else }}
 - name: REGISTRY_AUTH
   value: "htpasswd"
 - name: REGISTRY_AUTH_HTPASSWD_REALM
@@ -50,6 +66,23 @@ We truncate at 63 chars because some Kubernetes name fields are limited to this 
 - name: REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY
   value: "/var/lib/registry"
 {{- else if eq .Values.storage "azure" }}
+{{- if .Values.secrets.existinghtpasswdSecret }}
+- name: REGISTRY_STORAGE_AZURE_ACCOUNTNAME
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.secrets.existinghtpasswdSecret }}
+      key: azureAccountName
+- name: REGISTRY_STORAGE_AZURE_ACCOUNTKEY
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.secrets.existinghtpasswdSecret }}
+      key: azureAccountKey
+- name: REGISTRY_STORAGE_AZURE_CONTAINER
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.secrets.existinghtpasswdSecret }}
+      key: azureContainer
+{{- else }}
 - name: REGISTRY_STORAGE_AZURE_ACCOUNTNAME
   valueFrom:
     secretKeyRef:
@@ -65,6 +98,7 @@ We truncate at 63 chars because some Kubernetes name fields are limited to this 
     secretKeyRef:
       name: {{ template "docker-registry.fullname" . }}-secret
       key: azureContainer
+{{- end }}
 {{- else if eq .Values.storage "s3" }}
 - name: REGISTRY_STORAGE_S3_REGION
   value: {{ required ".Values.s3.region is required" .Values.s3.region }}
@@ -106,6 +140,7 @@ We truncate at 63 chars because some Kubernetes name fields are limited to this 
 {{- else if eq .Values.storage "swift" }}
 - name: REGISTRY_STORAGE_SWIFT_AUTHURL
   value: {{ required ".Values.swift.authurl is required" .Values.swift.authurl }}
+{{- if not .Values.secrets.existinghtpasswdSecret }}
 - name: REGISTRY_STORAGE_SWIFT_USERNAME
   valueFrom:
     secretKeyRef:
@@ -116,6 +151,18 @@ We truncate at 63 chars because some Kubernetes name fields are limited to this 
     secretKeyRef:
       name: {{ template "docker-registry.fullname" . }}-secret
       key: swiftPassword
+{{- else }}
+- name: REGISTRY_STORAGE_SWIFT_USERNAME
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.secrets.existinghtpasswdSecret }}
+      key: swiftUsername
+- name: REGISTRY_STORAGE_SWIFT_PASSWORD
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.secrets.existinghtpasswdSecret }}
+      key: swiftPassword
+{{- end }}
 - name: REGISTRY_STORAGE_SWIFT_CONTAINER
   value: {{ required ".Values.swift.container is required" .Values.swift.container }}
 {{- end -}}
@@ -150,7 +197,7 @@ We truncate at 63 chars because some Kubernetes name fields are limited to this 
 - name: "{{ template "docker-registry.fullname" . }}-config"
   mountPath: "/etc/docker/registry"
 
-{{- if .Values.secrets.htpasswd }}
+{{- if or (.Values.secrets.htpasswd) (.Values.secrets.existinghtpasswdSecret) }}
 - name: auth
   mountPath: /auth
   readOnly: true
@@ -178,10 +225,19 @@ We truncate at 63 chars because some Kubernetes name fields are limited to this 
   configMap:
     name: {{ template "docker-registry.fullname" . }}-config
 
+{{- if not .Values.secrets.existinghtpasswdSecret }}
 {{- if .Values.secrets.htpasswd }}
 - name: auth
   secret:
     secretName: {{ template "docker-registry.fullname" . }}-secret
+    items:
+    - key: htpasswd
+      path: htpasswd
+{{- end }}
+{{- else }}
+- name: auth
+  secret:
+    secretName: {{ .Values.secrets.existinghtpasswdSecret }}
     items:
     - key: htpasswd
       path: htpasswd
